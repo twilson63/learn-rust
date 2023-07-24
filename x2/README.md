@@ -133,16 +133,16 @@ pub trait WriteActionable {
 
 impl WriteActionable for Transfer {
     fn action(self, _caller: String, mut state: State) -> WriteResult<State, PstError> {
-        // if self.qty == 0 {
-        //     return WriteResult::ContractError(TransferAmountMustBeHigherThanZero);
-        // }
+        if self.qty == 0 {
+            return WriteResult::RuntimeError("qty can not be less than zero");
+        }
         let caller = Transaction::owner();
         let balances = &mut state.balances;
 
         let caller_balance = *balances.get(&caller).unwrap_or(&0);
-        // if caller_balance < self.qty {
-        //     return WriteResult::ContractError(CallerBalanceNotEnough(caller_balance));
-        // }
+        if caller_balance < self.qty {
+             return WriteResult::RuntimeError("Not enough funds to transfer");
+        }
 
         balances.insert(caller, caller_balance - self.qty);
 

@@ -11,11 +11,6 @@ use warp_contracts::{
 #[serde(tag = "kind", content = "data")]
 pub enum PstError {
     TransferAmountMustBeHigherThanZero,
-    IDontLikeThisContract,
-    CallerBalanceNotEnough(u64),
-    OnlyOwnerCanEvolve,
-    EvolveNotAllowed,
-    WalletHasNoBalanceDefined(String),
 }
 
 #[derive(JsonSchema, Serialize, Deserialize, Clone, Default, Debug)]
@@ -42,14 +37,14 @@ pub enum Action {
 }
 
 pub trait WriteActionable {
-    fn action(self, caller: String, state: State) -> WriteResult<State, PstError>;
+    fn action(self, caller: String, state: State) -> WriteResult<State, ()>;
 }
 
 impl WriteActionable for Transfer {
-    fn action(self, _caller: String, mut state: State) -> WriteResult<State, PstError> {
-        // if self.qty == 0 {
-        //     return WriteResult::ContractError(TransferAmountMustBeHigherThanZero);
-        // }
+    fn action(self, _caller: String, mut state: State) -> WriteResult<State, ()> {
+        if self.qty == 0 {
+            return WriteResult::RuntimeError("Transfer zero qty is not allowed".to_string());
+        }
         let caller = Transaction::owner();
         let balances = &mut state.balances;
 
@@ -68,7 +63,7 @@ impl WriteActionable for Transfer {
 }
 
 #[warp_contract(write)]
-pub fn handle(state: State, action: Action) -> WriteResult<State, PstError> {
+pub fn handle(state: State, action: Action) -> WriteResult<State, ()> {
     let caller = SmartWeave::caller();
 
     match action {
